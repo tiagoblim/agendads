@@ -6,6 +6,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { ContatoService } from '../contato.service';
 import { Contato } from './contato';
 import { ContatoDetalheComponent } from '../contato-detalhe/contato-detalhe.component';
+import { PageEvent } from '@angular/material/paginator';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-contato',
@@ -18,20 +20,28 @@ export class ContatoComponent implements OnInit {
   contatos: Contato[] = [];
   colunas = ['foto', 'id', 'nome', 'email', 'favorito'];
 
+  totalElements = 0;
+  pagina = 0;
+  tamanho = 10;
+  pageSizeOptions = [10];
+
   constructor(
     private service: ContatoService,
     private fb: FormBuilder,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
   ) { }
 
   ngOnInit(): void {
     this.montarFormulario();
-    this.listarContatos();
+    this.listarContatos(this.pagina, this.tamanho);
   }
 
-  listarContatos(): void {
-    this.service.list().subscribe( response => {
-      this.contatos = response;
+  listarContatos(pagina = 0, tamanhoPagina = 10): void {
+    this.service.list(pagina, tamanhoPagina).subscribe( response => {
+      this.contatos = response.content;
+      this.totalElements = response.totalElements;
+      this.pagina = response.number;
     });
   }
 
@@ -53,8 +63,11 @@ export class ContatoComponent implements OnInit {
     const contato = new Contato(formValues.nome, formValues.email);
 
     this.service.save(contato).subscribe( response => {
-      let lista = [...this.contatos, response];
-      this.contatos = lista;
+      this.listarContatos();
+      this.formulario.reset();
+      this.snackBar.open('O contat foi adicionado com sucesso', 'Sucesso', {
+        duration: 2000
+      });
     })
   }
 
@@ -75,6 +88,11 @@ export class ContatoComponent implements OnInit {
       height: '450px',
       data: contato
     })
+  }
+
+  paginar(event: PageEvent) {
+    this.pagina = event.pageIndex;
+    this.listarContatos(this.pagina, this.tamanho);
   }
 
 }
